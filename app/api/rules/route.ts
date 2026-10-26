@@ -4,15 +4,22 @@ import { RuleSchema } from "@/lib/schema";
 import { calculatePayments } from "@/lib/calc";
 
 export async function POST(req: Request) {
-  const { sentence, rule, grossCents, netCents } = await req.json();
+  const { sentence, rule, grossCents, netCents, emails } = await req.json();
 
   try {
     const parsed = RuleSchema.parse(rule);
     const payments = calculatePayments(parsed, grossCents, netCents);
 
+    if (
+      !Array.isArray(emails) ||
+      emails.length !== payments.length ||
+      emails.some((e: unknown) => typeof e !== "string" || !e.includes("@"))
+    ) {
+      throw new Error("Please enter a valid email for every recipient.");
+    }
+
     const delayMs =
-      parsed.delay_value *
-      (parsed.delay_unit === "days" ? 86_400_000 : 60_000);
+      parsed.delay_value * (parsed.delay_unit === "days" ? 86_400_000 : 60_000);
     const dueAt = new Date(Date.now() + delayMs);
 
     const [saved] = await sql`
@@ -20,12 +27,12 @@ export async function POST(req: Request) {
       values (${sentence}, ${sql.json(parsed)})
       returning id`;
 
-    for (const p of payments) {
+    for (let i = 0; i < payments.length; i++) {
       await sql`
         insert into payouts
           (rule_id, recipient_name, recipient_email, amount_cents, due_at)
         values
-          (${saved.id}, ${p.name}, ${p.email ?? null}, ${p.cents}, ${dueAt})`;
+          (${saved.id}, ${payments[i].name}, ${emails[i].trim()}, ${payments[i].cents}, ${dueAt})`;
     }
 
     await sql`
