@@ -62,6 +62,27 @@ export default function Home() {
     }
   }
 
+  async function handleConfirm() {
+    setError("");
+    try {
+      const res = await fetch("/api/rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sentence,
+          rule,
+          grossCents: Math.round(gross * 100),
+          netCents: Math.round(net * 100),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || data.error);
+      setConfirmed(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed");
+    }
+  }
+
   const total = payments.reduce((s, p) => s + p.cents, 0);
 
   return (
@@ -140,14 +161,14 @@ export default function Home() {
 
           {!confirmed ? (
             <button
-              onClick={() => setConfirmed(true)}
+              onClick={handleConfirm}
               className="rounded bg-green-600 px-5 py-2 text-white"
             >
               Confirm rule
             </button>
           ) : (
             <p className="text-green-700">
-              Rule confirmed. (Saving comes in the next step.)
+              Rule confirmed and saved. Payouts are scheduled.
             </p>
           )}
         </section>
