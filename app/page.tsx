@@ -1,4 +1,6 @@
 "use client";
+import Ledger from "@/components/Ledger";
+
 
 import { useEffect, useState } from "react";
 
@@ -300,6 +302,10 @@ export default function Home() {
             </tbody>
           </table>
         )}
+      </section>
+        <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Ledger</h2>
+        <Ledger payouts={payouts} />
       </section>
     </main>
   );
