@@ -1,5 +1,6 @@
 "use client";
 import Ledger from "@/components/Ledger";
+import HelpChat from "@/components/HelpChat";
 
 
 import { useEffect, useState } from "react";
@@ -307,6 +308,7 @@ export default function Home() {
         <h2 className="text-xl font-semibold">Ledger</h2>
         <Ledger payouts={payouts} />
       </section>
+            <HelpChat />
     </main>
   );
 }
