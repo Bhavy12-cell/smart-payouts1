@@ -24,9 +24,11 @@ export default function HelpChat() {
   ]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open]);
+   useEffect(() => {
+    const openHelp = () => setOpen(true);
+    window.addEventListener("open-help", openHelp);
+    return () => window.removeEventListener("open-help", openHelp);
+  }, []);
 
   async function send(text: string) {
     const q = text.trim();
@@ -63,7 +65,7 @@ export default function HelpChat() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 rounded-full bg-black px-5 py-3 text-white shadow-lg"
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-3 text-white shadow-lg"
         >
           Help
         </button>

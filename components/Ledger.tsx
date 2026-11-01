@@ -5,10 +5,20 @@ import { AgGridReact } from "ag-grid-react";
 import {
   AllCommunityModule,
   ModuleRegistry,
+  themeQuartz,
+  colorSchemeDark,
   type ColDef,
 } from "ag-grid-community";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const darkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  backgroundColor: "#0c1744",
+  foregroundColor: "#e2e8f0",
+  headerBackgroundColor: "#14236a",
+  borderColor: "rgba(255,255,255,0.1)",
+  accentColor: "#6366f1",
+});
 
 type Payout = {
   id: string;
@@ -45,6 +55,7 @@ export default function Ledger({ payouts }: { payouts: Payout[] }) {
   return (
     <div style={{ height: 380, width: "100%" }}>
       <AgGridReact<Payout>
+        theme={darkTheme}
         rowData={payouts}
         columnDefs={columnDefs}
         defaultColDef={{ sortable: true, filter: true, resizable: true, flex: 1 }}
