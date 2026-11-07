@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { RuleSchema } from "@/lib/schema";
-import { calculatePayments } from "@/lib/calc";
+import { calculatePayments, checkBudget } from "@/lib/calc";
 
 export async function POST(req: Request) {
   const { sentence, rule, grossCents, netCents, emails } = await req.json();
@@ -9,6 +9,8 @@ export async function POST(req: Request) {
   try {
     const parsed = RuleSchema.parse(rule);
     const payments = calculatePayments(parsed, grossCents, netCents);
+        const problem = checkBudget(parsed, payments, grossCents, netCents);
+    if (problem) throw new Error(problem);
 
     if (
       !Array.isArray(emails) ||

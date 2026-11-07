@@ -18,3 +18,17 @@ export function calculatePayments(
         : Math.round(r.value * 100),
   }));
 }
+export function checkBudget(
+  rule: Rule,
+  payments: Payment[],
+  grossCents: number,
+  netCents: number
+): string | null {
+  const base = rule.basis === "net" ? netCents : grossCents;
+  const total = payments.reduce((s, p) => s + p.cents, 0);
+  if (total > base) {
+    const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
+    return `Total payouts (${usd(total)}) are more than the ${rule.basis} revenue (${usd(base)}). Please fix the rule.`;
+  }
+  return null;
+}

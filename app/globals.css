@@ -1,10 +1,10 @@
-@import "tailwindcss";
+/* @import "tailwindcss";
 
 body {
   margin: 0;
   color: #e2e8f0;
   font-family: Arial, Helvetica, sans-serif;
-  background: #050b24;
+  background: #081547;
 }
 
 .app-bg {
@@ -26,7 +26,7 @@ body {
 }
 
 .btn-grad {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  background: linear-gradient(90deg, #184fc6, #5614c7);
   box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
 }
 .btn-grad:hover {
@@ -70,4 +70,129 @@ body {
 input::placeholder,
 textarea::placeholder {
   color: rgba(226, 232, 240, 0.4);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.pop {
+  animation: pop 0.45s ease-out;
+} */
+
+@import "tailwindcss";
+
+:root {
+  --text-main: #f5e9ff;
+  --text-muted: #c4b5fd;
+  --pink: #f472b6;
+  --purple: #a855f7;
+}
+
+body {
+  margin: 0;
+  color: var(--text-main);
+  font-family: Arial, Helvetica, sans-serif;
+  background: #12062e;
+}
+
+.app-bg {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(236, 72, 153, 0.28), transparent 60%),
+    radial-gradient(700px 500px at 0% 40%, rgba(124, 58, 237, 0.3), transparent 60%),
+    radial-gradient(600px 400px at 100% 100%, rgba(217, 70, 239, 0.25), transparent 60%),
+    linear-gradient(160deg, #0c0420 0%, #1a0b3d 55%, #2d0f5c 100%);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(196, 132, 252, 0.22);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.btn-grad {
+  background: linear-gradient(90deg, #7c3aed, #ec4899);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+  transition: filter 0.2s, transform 0.2s;
+}
+.btn-grad:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #f472b6, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Tailwind slate/blue text -> pink/lavender (components me existing classes bhi change ho jayengi) */
+.text-slate-200,
+.text-slate-300 {
+  color: var(--text-main) !important;
+}
+.text-slate-400,
+.text-slate-500 {
+  color: var(--text-muted) !important;
+}
+.text-blue-400,
+.text-indigo-400,
+.text-indigo-300 {
+  color: var(--pink) !important;
+}
+
+/* Inputs / textarea focus glow */
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--pink) !important;
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.25);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(8deg); }
+}
+
+.coin {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 700;
+  color: #7c4a03;
+  background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b 70%);
+  box-shadow: 0 0 30px rgba(244, 114, 182, 0.35);
+  opacity: 0.55;
+  animation: float 7s ease-in-out infinite;
+}
+
+@keyframes slide-in {
+  from { transform: translateY(-12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.toast-in {
+  animation: slide-in 0.25s ease-out;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(245, 233, 255, 0.4);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.pop {
+  animation: pop 0.45s ease-out;
 }

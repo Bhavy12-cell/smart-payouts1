@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Ledger from "@/components/Ledger";
 import HelpChat from "@/components/HelpChat";
+import Activity, { type ActivityItem } from "@/components/Activity";
+import PayoutChart from "@/components/PayoutChart";
 
 type Recipient = { name: string; type: string; value: number };
 type Rule = {
@@ -20,6 +22,7 @@ type Payout = {
   due_at: string;
   status: string;
   paypal_batch_id: string | null;
+    created_at?: string;
 };
 type Flag = { code: string; message: string };
 type Review = {
@@ -31,12 +34,19 @@ type Review = {
   explanation: string;
 };
 type Toast = { kind: "success" | "error"; text: string } | null;
+type SuccessInfo = {
+  id: string;
+  name: string;
+  email: string;
+  amountCents: number;
+  state: "checking" | "paid" | "unclaimed" | "failed" | "pending";
+};
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const EXAMPLES = [
   "Pay each editor 60% of net revenue after 30 days",
-  "Pay editor Rahul 60% and designer a flat $50, after 2 minutes",
+    "Pay editor Rahul 60% and designer a flat $30, after 2 minutes",
   "Pay each editor 40% of gross revenue after 7 days",
 ];
 
@@ -45,6 +55,8 @@ const badge: Record<string, { cls: string; dot: string }> = {
   processing: { cls: "bg-sky-400/10 text-sky-300 ring-sky-400/30", dot: "bg-sky-400" },
   sent: { cls: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/30", dot: "bg-emerald-400" },
   failed: { cls: "bg-red-400/10 text-red-300 ring-red-400/30", dot: "bg-red-400" },
+  paid: { cls: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/30", dot: "bg-emerald-400" },
+  unclaimed: { cls: "bg-orange-400/10 text-orange-300 ring-orange-400/30", dot: "bg-orange-400" },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -93,6 +105,8 @@ export default function Home() {
   const [busyId, setBusyId] = useState("");
   const [review, setReview] = useState<Review | null>(null);
   const [toast, setToast] = useState<Toast>(null);
+  const [success, setSuccess] = useState<SuccessInfo | null>(null);
+    const [activity, setActivity] = useState<ActivityItem[]>([]);
 
   function notify(kind: "success" | "error", text: string) {
     setToast({ kind, text });
@@ -104,16 +118,26 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  async function loadPayouts() {
-    const res = await fetch("/api/payouts");
-    const data = await res.json();
-    setPayouts(data.payouts ?? []);
+    async function loadPayouts() {
+    try {
+      const res = await fetch("/api/payouts", { cache: "no-store" });
+      const data = await res.json();
+      setPayouts(data.payouts ?? []);
+    } catch (e) {
+      console.error("payouts load failed", e);
+    }
+    try {
+      const res2 = await fetch("/api/activity", { cache: "no-store" });
+      const data2 = await res2.json();
+      setActivity(data2.events ?? []);
+    } catch (e) {
+      console.error("activity load failed", e);
+    }
   }
 
   useEffect(() => {
     loadPayouts();
   }, []);
-
   async function handlePreview() {
     setLoading(true);
     setRule(null);
@@ -210,6 +234,22 @@ export default function Home() {
     }
   }
 
+  async function checkDelivery(id: string) {
+    for (let i = 0; i < 6; i++) {
+      await new Promise((r) => setTimeout(r, 2500));
+      try {
+        const res = await fetch(`/api/payouts/${id}/status`, { method: "POST" });
+        const data = await res.json();
+        if (res.ok && data.status !== "pending") {
+          setSuccess((s) => (s && s.id === id ? { ...s, state: data.status } : s));
+          await loadPayouts();
+          return;
+        }
+      } catch {}
+    }
+    setSuccess((s) => (s && s.id === id ? { ...s, state: "pending" } : s));
+  }
+
   async function approve() {
     if (!review) return;
     const r = review;
@@ -223,15 +263,19 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || data.error);
       setReview(null);
-      notify(
-        "success",
-        `Payout sent to PayPal: ${usd(r.amountCents)} to ${r.name} (${r.email})`
-      );
+      setSuccess({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        amountCents: r.amountCents,
+        state: "checking",
+      });
+      await loadPayouts();
+      checkDelivery(r.id);
     } catch (e) {
       notify("error", e instanceof Error ? e.message : "Approve failed");
     } finally {
       setBusyId("");
-      await loadPayouts();
     }
   }
 
@@ -240,10 +284,11 @@ export default function Home() {
   }
 
   const total = payments.reduce((s, p) => s + p.cents, 0);
-  const pending = payouts.filter((p) => p.status !== "sent");
-  const sentCount = payouts.filter((p) => p.status === "sent").length;
+  const done = ["sent", "paid"];
+  const pending = payouts.filter((p) => !done.includes(p.status));
+  const sentCount = payouts.filter((p) => done.includes(p.status)).length;
   const sentTotal = payouts
-    .filter((p) => p.status === "sent")
+    .filter((p) => done.includes(p.status))
     .reduce((s, p) => s + p.amount_cents, 0);
 
   const navLink =
@@ -257,6 +302,79 @@ export default function Home() {
         <div className="coin h-9 w-9 text-sm" style={{ top: "38%", right: "3%", animationDelay: "1.5s" }}>$</div>
         <div className="coin h-11 w-11 text-base" style={{ bottom: "14%", right: "12%", animationDelay: "3s" }}>$</div>
       </div>
+
+      {/* Success modal */}
+      {success && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="glass pop w-full max-w-sm p-8 text-center">
+            {success.state === "checking" && (
+              <>
+                <div className="mx-auto mb-4 h-14 w-14 animate-spin rounded-full border-4 border-white/20 border-t-indigo-400" />
+                <h2 className="text-xl font-bold text-white">Sending payment...</h2>
+                <p className="mt-2 text-sm text-slate-300">Checking with PayPal</p>
+              </>
+            )}
+
+            {success.state === "paid" && (
+              <>
+                <div className="pop mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-3xl text-white">
+                  ✓
+                </div>
+                <h2 className="text-xl font-bold text-white">Money delivered!</h2>
+                <p className="mt-2 text-2xl font-bold text-emerald-300">
+                  {usd(success.amountCents)}
+                </p>
+                <p className="mt-1 text-sm text-slate-300">
+                  reached {success.name}
+                  <br />
+                  <span className="text-slate-400">{success.email}</span>
+                </p>
+              </>
+            )}
+
+            {success.state === "pending" && (
+              <>
+                <div className="pop mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-3xl text-white">
+                  ➤
+                </div>
+                <h2 className="text-xl font-bold text-white">Payment sent</h2>
+                <p className="mt-2 text-sm text-slate-300">
+                  PayPal accepted {usd(success.amountCents)} for {success.name}. Final
+                  confirmation is still processing.
+                </p>
+              </>
+            )}
+
+            {success.state === "unclaimed" && (
+              <>
+                <div className="pop mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-500 text-3xl text-white">
+                  !
+                </div>
+                <h2 className="text-xl font-bold text-white">Unclaimed</h2>
+                <p className="mt-2 text-sm text-slate-300">
+                  {success.email} has no confirmed PayPal account yet. Check the email.
+                </p>
+              </>
+            )}
+
+            {success.state === "failed" && (
+              <>
+                <div className="pop mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-3xl text-white">
+                  ✕
+                </div>
+                <h2 className="text-xl font-bold text-white">Payment failed</h2>
+                <p className="mt-2 text-sm text-slate-300">PayPal could not deliver this payout.</p>
+              </>
+            )}
+
+            {success.state !== "checking" && (
+              <button onClick={() => setSuccess(null)} className={`${primaryBtn} mt-6`}>
+                Done
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
@@ -351,7 +469,15 @@ export default function Home() {
                 </div>
               </div>
             ))}
+           </div>
+                     
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <PayoutChart payouts={payouts} />
+            <Activity events={activity} />
           </div>
+        
+
 
           {/* Step 1 */}
           <section className="glass p-6">

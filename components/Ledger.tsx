@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
 import {
   AllCommunityModule,
@@ -31,6 +31,8 @@ type Payout = {
 };
 
 export default function Ledger({ payouts }: { payouts: Payout[] }) {
+  const gridRef = useRef<AgGridReact<Payout>>(null);
+
   const columnDefs = useMemo<ColDef<Payout>[]>(
     () => [
       { field: "recipient_name", headerName: "Recipient" },
@@ -52,16 +54,31 @@ export default function Ledger({ payouts }: { payouts: Payout[] }) {
     []
   );
 
+  function exportCsv() {
+    gridRef.current?.api.exportDataAsCsv({ fileName: "smart-payouts-ledger.csv" });
+  }
+
   return (
-    <div style={{ height: 380, width: "100%" }}>
-      <AgGridReact<Payout>
-        theme={darkTheme}
-        rowData={payouts}
-        columnDefs={columnDefs}
-        defaultColDef={{ sortable: true, filter: true, resizable: true, flex: 1 }}
-        pagination
-        paginationPageSize={10}
-      />
+    <div>
+      <div className="mb-3 flex justify-end">
+        <button
+          onClick={exportCsv}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10"
+        >
+          ⬇ Export CSV
+        </button>
+      </div>
+      <div style={{ height: 380, width: "100%" }}>
+        <AgGridReact<Payout>
+          ref={gridRef}
+          theme={darkTheme}
+          rowData={payouts}
+          columnDefs={columnDefs}
+          defaultColDef={{ sortable: true, filter: true, resizable: true, flex: 1 }}
+          pagination
+          paginationPageSize={10}
+        />
+      </div>
     </div>
   );
 }
